@@ -1,0 +1,77 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Entrega de Pedidos</h1>
+    <button class="btn btn-primary" (click)="preConfirmDelivery()">Confirmar Entrega</button>
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th></th>
+        <th>ID</th>
+        <th>NR</th>
+        <th>Cliente</th>
+        <th>Prioridade</th>
+        <th>dataHora</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of orders">
+        <td><input type="checkbox" (change)="onOrderSelectionChange(order, $event)"
+            [checked]="selectedOrders.includes(order)" /></td>
+        <td>{{order.id}}</td>
+        <td>{{ order.nr }}</td>
+        <td>{{ order.cliente }}</td>
+        <td [ngStyle]="{'color': getPriorityColor(order.prioridade)}">{{ order.prioridade }}</td>
+        <td>{{order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deliveryModalLabel">Realizar Entrega</h5>
+        <button type="button" #deliveryModalClose class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="selectedOrders.length > 0" class="mb-3">
+          <h6>Pedidos Selecionados:</h6>
+          <ul>
+            <li *ngFor="let order of selectedOrders">
+              {{ order.nr }} - {{ order.cliente }} - {{ order.prioridade }} - {{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}
+            </li>
+          </ul>
+        </div>
+        <form [formGroup]="deliveryForm" (ngSubmit)="confirmDelivery()">
+          <div class="mb-3">
+            <label for="deliveryPerson" class="form-label">Nome do Entregador</label>
+            <input type="text" id="deliveryPerson" formControlName="deliveryPerson" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Observação</label>
+            <textarea id="notes" formControlName="notes" class="form-control"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Confirmar Entrega</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="thankYouModal" tabindex="-1" aria-labelledby="thankYouModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="thankYouModalLabel">Obrigado!</h5>
+        <button type="button" #thankYouModalClose class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Obrigado por confirmar a entrega. Tenha uma boa viagem!</p>
+      </div>
+    </div>
+  </div>
+</div>

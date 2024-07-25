@@ -1,1 +1,21 @@
-<app-orders></app-orders>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#" id="nameBar">Organizador</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/pedidos" routerLinkActive="active">Pedidos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/entrega" routerLinkActive="active">Entrega</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
+  <div class="container mt-3">
+    <router-outlet></router-outlet>
+  </div>
+  

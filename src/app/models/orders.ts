@@ -4,4 +4,8 @@ export class orders {
   cliente: string = '';
   dataH: Date | undefined;
   prioridade: string = '';
+  status: number = 0;
+  deliveryPerson?: string;
+  deliveryDate?: Date;
+  notes?: string = '';
 }

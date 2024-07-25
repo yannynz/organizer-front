@@ -49,11 +49,12 @@ export class OrdersComponent implements OnInit {
 
   selecionar(): void {
     this.service.getOrders().subscribe((retorno) => {
-      this.orders = retorno.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+      this.orders = retorno
+        .filter(order => order.status !== 1)
+        .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
     });
   }
   
-
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
     const priorityOrder = Prioridade;
   
@@ -100,7 +101,6 @@ export class OrdersComponent implements OnInit {
 
   updateOrder(): void {
     if (this.editOrderForm.valid) {
-      // Formatar a data
       const formattedDataH = this.formatDateForBackend(this.editOrderForm.value.dataH);
       const orderToUpdate = { ...this.editOrderForm.value, dataH: formattedDataH };
       const id = this.editOrderForm.value.id;
@@ -146,7 +146,6 @@ export class OrdersComponent implements OnInit {
 
   private formatDateForBackend(date: Date | string): string {
     if (date instanceof Date) {
-      // Formatar a data para o formato yyyy-MM-ddThh:mm
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
