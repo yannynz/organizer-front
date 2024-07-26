@@ -1,9 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { orders } from '../../models/orders';
 import { OrdersService } from '../../services/orders.service';
+import { WebSocketService } from '../../services/websocket.service';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { SocketIoModule } from 'ngx-socket-io';
 
 enum Prioridade {
   Vermelho = 1,
@@ -12,11 +14,10 @@ enum Prioridade {
   Verde = 4,
 }
 
-
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SocketIoModule],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.css'],
 })
@@ -26,7 +27,11 @@ export class OrdersComponent implements OnInit {
   editOrderForm: FormGroup;
   editingOrder: orders | undefined;
 
-  constructor(private service: OrdersService, private fb: FormBuilder) {
+  constructor(
+    private service: OrdersService,
+    private wsService: WebSocketService,
+    private fb: FormBuilder
+  ) {
     this.createOrderForm = this.fb.group({
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
@@ -45,6 +50,11 @@ export class OrdersComponent implements OnInit {
 
   ngOnInit() {
     this.selecionar();
+    this.wsService.getOrders().subscribe((orders: orders[]) => {
+      this.orders = orders
+        .filter(order => order.status !== 1)
+        .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    });
   }
 
   selecionar(): void {
@@ -54,17 +64,13 @@ export class OrdersComponent implements OnInit {
         .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
     });
   }
-  
+
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
     const priorityOrder = Prioridade;
-  
-    // Converter prioridades para valores numéricos usando o enum
     const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
     const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
-  
     return priorityA - priorityB;
   }
-  
 
   delete(id: number): void {
     this.service.deleteOrder(id).subscribe({
@@ -79,18 +85,15 @@ export class OrdersComponent implements OnInit {
 
   createOrder(): void {
     if (this.createOrderForm.valid) {
-      // Formatar a data
       const formattedDataH = this.formatDateForBackend(this.createOrderForm.value.dataH);
       const orderToCreate = { ...this.createOrderForm.value, dataH: formattedDataH };
 
-      console.log('Dados do pedido a serem enviados para o backend:', orderToCreate);
-      
       this.service.createOrder(orderToCreate).subscribe({
         next: (createdOrder) => {
-          console.log('Pedido criado com sucesso:', createdOrder);
           this.selecionar();
           this.createOrderForm.reset();
           this.closeModal('createOrderModal');
+          this.wsService.sendOrderUpdate(createdOrder);
         },
         error: (err) => {
           console.error('Erro ao criar o pedido:', err);
@@ -104,12 +107,13 @@ export class OrdersComponent implements OnInit {
       const formattedDataH = this.formatDateForBackend(this.editOrderForm.value.dataH);
       const orderToUpdate = { ...this.editOrderForm.value, dataH: formattedDataH };
       const id = this.editOrderForm.value.id;
-      
+
       this.service.updateOrder(id, orderToUpdate).subscribe({
         next: () => {
           this.selecionar();
           this.editingOrder = undefined;
           this.closeModal('editOrderModal');
+          this.wsService.sendOrderUpdate(orderToUpdate);
         },
         error: (err) => {
           console.error('Erro ao atualizar o pedido:', err);

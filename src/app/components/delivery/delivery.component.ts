@@ -6,9 +6,10 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { OrdersService } from '../../services/orders.service';
+import { WebSocketService } from '../../services/websocket.service'; // Atualizado para usar WebSocketService
 import { orders } from '../../models/orders';
 import { CommonModule } from '@angular/common';
+import { SocketIoModule } from 'ngx-socket-io';
 
 enum Prioridade {
   Vermelho = 1,
@@ -16,14 +17,14 @@ enum Prioridade {
   Azul = 3,
   Verde = 4,
 }
+
 @Component({
   selector: 'app-delivery',
   standalone: true,
-  imports: [FormsModule, CommonModule, ReactiveFormsModule],
+  imports: [FormsModule, CommonModule, ReactiveFormsModule,SocketIoModule],
   templateUrl: './delivery.component.html',
   styleUrls: ['./delivery.component.css'],
 })
-
 export class DeliveryComponent implements OnInit {
   orders: orders[] = [];
   selectedOrders: orders[] = [];
@@ -32,7 +33,10 @@ export class DeliveryComponent implements OnInit {
   @ViewChild('deliveryModalClose') deliveryModalClose: ElementRef | undefined;
   @ViewChild('thankYouModalClose') thankYouModalClose: ElementRef | undefined;
 
-  constructor(private ordersService: OrdersService, private fb: FormBuilder) {
+  constructor(
+    private webSocketService: WebSocketService,
+    private fb: FormBuilder
+  ) {
     this.deliveryForm = this.fb.group({
       deliveryPerson: ['', Validators.required],
       notes: [''],
@@ -44,7 +48,7 @@ export class DeliveryComponent implements OnInit {
   }
 
   loadOrders(): void {
-    this.ordersService.getOrders().subscribe((orders) => {
+    this.webSocketService.getOrders().subscribe((orders) => {
       this.orders = orders
         .filter((order) => order.status === 0)
         .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
@@ -53,8 +57,10 @@ export class DeliveryComponent implements OnInit {
 
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
     const priorityOrder = Prioridade;
-    const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
-    const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
+    const priorityA =
+      priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
+    const priorityB =
+      priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
     return priorityA - priorityB;
   }
 
@@ -75,15 +81,14 @@ export class DeliveryComponent implements OnInit {
     }
   }
 
-closeModal(modalId: string): void {
-  this.isModalVisible = false;
-  const modalElement = document.getElementById(modalId);
-  if (modalElement) {
-    const bootstrapModal = new (window as any).bootstrap.Modal(modalElement);
-    bootstrapModal.hide();
+  closeModal(modalId: string): void {
+    this.isModalVisible = false;
+    const modalElement = document.getElementById(modalId);
+    if (modalElement) {
+      const bootstrapModal = new (window as any).bootstrap.Modal(modalElement);
+      bootstrapModal.hide();
+    }
   }
-}
-  
 
   getPriorityColor(prioridade: string): string {
     switch (prioridade) {
@@ -112,13 +117,14 @@ closeModal(modalId: string): void {
   confirmDelivery(): void {
     const deliveryPerson = this.deliveryForm.get('deliveryPerson')?.value;
     const notes = this.deliveryForm.get('notes')?.value;
-  
+
     this.selectedOrders.forEach((order) => {
-      this.ordersService.updateOrderStatus(order.id, 1, deliveryPerson, notes).subscribe(() => {
-        this.loadOrders();
-      });
+      order.status = 1; // Atualiza o status do pedido para entregue
+      order.deliveryPerson = deliveryPerson;
+      order.notes = notes;
+      this.webSocketService.sendOrderUpdate(order);
     });
-  
+
     if (this.deliveryModalClose) {
       this.deliveryModalClose.nativeElement.click();
     }
@@ -126,9 +132,11 @@ closeModal(modalId: string): void {
     if (this.thankYouModalClose) {
       const thankYouModal = document.getElementById('thankYouModal');
       if (thankYouModal) {
-        const bootstrapModal = new (window as any).bootstrap.Modal(thankYouModal);
+        const bootstrapModal = new (window as any).bootstrap.Modal(
+          thankYouModal
+        );
         bootstrapModal.show();
       }
     }
-  }  
+  }
 }
