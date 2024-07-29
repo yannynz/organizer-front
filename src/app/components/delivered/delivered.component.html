@@ -1,0 +1,77 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Pedidos Entregues</h1>
+    <input 
+      type="text" 
+      class="form-control w-50" 
+      placeholder="Pesquisar por ID, NR ou Cliente" 
+      [(ngModel)]="searchTerm" 
+      (ngModelChange)="searchOrders()"
+    />
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>NR</th>
+        <th>Cliente</th>
+        <th>Data e Hora (pC)</th>
+        <th>Data e Hora (pE)</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let order of paginatedOrders">
+        <tr (click)="toggleAccordion(order)">
+          <td>{{ order.id }}</td>
+          <td>{{ order.nr }}</td>
+          <td>{{ order.cliente }}</td>
+          <td>{{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ order.dataEntrega | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            <span class="accordion-icon" [class.open]="order.isOpen">></span>
+          </td>
+        </tr>
+        <tr *ngIf="order.isOpen">
+          <td colspan="6">
+            <div class="accordion">
+              <div class="accordion-item">
+                <div class="accordion-header" id="heading{{ order.id }}">
+                  <div id="collapse{{ order.id }}" class="accordion-collapse collapse show">
+                    <div class="accordion-body">
+                      <p><strong>ID:</strong> {{ order.id }}</p>
+                      <p><strong>NR:</strong> {{ order.nr }}</p>
+                      <p><strong>Cliente:</strong> {{ order.cliente }}</p>
+                      <p><strong>Prioridade:</strong> {{ order.prioridade }}</p>
+                      <p><strong>Data e Hora (pC):</strong> {{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</p>
+                      <p><strong>Data e Hora (pE):</strong> {{ order.dataEntrega | date: 'dd/MM/yyyy HH:mm' }}</p>
+                      <p><strong>Entregador:</strong> {{ order.entregador }}</p>
+                      <p><strong>Observações:</strong> {{ order.observacao }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+
+  <div class="d-flex justify-content-center mt-4">
+    <nav>
+      <ul class="pagination">
+        <li class="page-item" [ngClass]="{'disabled': currentPage === 1}">
+          <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
+        </li>
+        <li class="page-item" *ngFor="let page of pageNumbers" [ngClass]="{'active': currentPage === page}">
+          <a class="page-link" (click)="changePage(page)">{{ page }}</a>
+        </li>
+        <li class="page-item" [ngClass]="{'disabled': currentPage === totalPages}">
+          <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>

@@ -32,9 +32,16 @@ export class OrdersService {
   
     return this.http.put<orders>(`${url}?${params.toString()}`, null);
   }
-  
 
   deleteOrder(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  getDeliveredOrders(): Observable<orders[]> {
+    return this.http.get<orders[]>(`${this.url}?status=1`);
+  }
+
+  searchDeliveredOrders(term: string): Observable<orders[]> {
+    return this.http.get<orders[]>(`${this.url}/search?term=${term}&status=1`);
   }
 }

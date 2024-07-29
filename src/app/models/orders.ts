@@ -5,7 +5,10 @@ export class orders {
   dataH: Date | undefined;
   prioridade: string = '';
   status: number = 0;
-  deliveryPerson?: string;
-  deliveryDate?: Date;
-  notes?: string = '';
+  entregador?: string;
+  dataEntrega?: Date;
+  observacao?: string = '';
+  isOpen: boolean = false; 
 }
+
+

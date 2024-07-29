@@ -4,6 +4,8 @@ import { orders } from '../../models/orders';
 import { OrdersService } from '../../services/orders.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription, interval, switchMap, timer } from 'rxjs';
+
 
 enum Prioridade {
   Vermelho = 1,
@@ -12,7 +14,6 @@ enum Prioridade {
   Verde = 4,
 }
 
-
 @Component({
   selector: 'app-orders',
   standalone: true,
@@ -20,11 +21,15 @@ enum Prioridade {
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.css'],
 })
+
 export class OrdersComponent implements OnInit {
   orders: orders[] = [];
   createOrderForm: FormGroup;
   editOrderForm: FormGroup;
   editingOrder: orders | undefined;
+  private updateSubscription: Subscription | undefined;
+  autoRefreshEnabled: boolean = true;
+
 
   constructor(private service: OrdersService, private fb: FormBuilder) {
     this.createOrderForm = this.fb.group({
@@ -44,21 +49,62 @@ export class OrdersComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.selecionar();
+    this.initializePage();
   }
 
-  selecionar(): void {
-    this.service.getOrders().subscribe((retorno) => {
-      this.orders = retorno
-        .filter(order => order.status !== 1)
-        .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+  ngOnDestroy() {
+    this.stopAutoRefresh();
+  }
+
+  initializePage(): void {
+    this.selecionar().subscribe(() => {
+      if (this.autoRefreshEnabled) {
+        this.startAutoRefresh();
+      }
     });
   }
-  
+
+  selecionar() {
+    return this.service.getOrders().pipe(
+      switchMap((retorno) => {
+        this.orders = retorno
+          .filter(order => order.status !== 1)
+          .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+        return [];
+      })
+    );
+  }
+
+  toggleAutoRefresh(): void {
+    this.autoRefreshEnabled = !this.autoRefreshEnabled;
+    if (this.autoRefreshEnabled) {
+      this.startAutoRefresh();
+    } else {
+      this.stopAutoRefresh();
+    }
+  }
+
+  private startAutoRefresh(): void {
+    if (!this.updateSubscription) {
+      this.updateSubscription = interval(3000).pipe(
+        switchMap(() => this.selecionar())
+      ).subscribe({
+        error: (err) => {
+          console.error('Erro ao atualizar pedidos:', err);
+        }
+      });
+    }
+  }
+
+  private stopAutoRefresh(): void {
+    if (this.updateSubscription) {
+      this.updateSubscription.unsubscribe();
+      this.updateSubscription = undefined;
+    }
+  }
+
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
     const priorityOrder = Prioridade;
-  
-    // Converter prioridades para valores numéricos usando o enum
     const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
     const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
   
@@ -69,6 +115,7 @@ export class OrdersComponent implements OnInit {
   delete(id: number): void {
     this.service.deleteOrder(id).subscribe({
       next: () => {
+        console.log(`Pedido com ID ${id} excluído com sucesso.`);
         this.selecionar();
       },
       error: (err) => {

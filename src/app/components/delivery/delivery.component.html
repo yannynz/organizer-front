@@ -34,12 +34,12 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="deliveryModalLabel">Realizar Entrega</h5>
+        <h1 class="modal-title" id="deliveryModalLabel">Realizar Entrega</h1>
         <button type="button" #deliveryModalClose class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="selectedOrders.length > 0" class="mb-3">
-          <h6>Pedidos Selecionados:</h6>
+          <h1>Pedidos Selecionados:</h1>
           <ul>
             <li *ngFor="let order of selectedOrders">
               {{ order.nr }} - {{ order.cliente }} - {{ order.prioridade }} - {{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}
