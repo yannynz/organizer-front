@@ -5,6 +5,7 @@ import { OrdersService } from '../../services/orders.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription, interval, switchMap, timer } from 'rxjs';
+import { WebSocketService } from '../../services/websocket.service';
 
 
 enum Prioridade {
@@ -27,11 +28,8 @@ export class OrdersComponent implements OnInit {
   createOrderForm: FormGroup;
   editOrderForm: FormGroup;
   editingOrder: orders | undefined;
-  private updateSubscription: Subscription | undefined;
-  autoRefreshEnabled: boolean = true;
 
-
-  constructor(private service: OrdersService, private fb: FormBuilder) {
+  constructor(private service: OrdersService, private fb: FormBuilder, private webSocketService: WebSocketService) {
     this.createOrderForm = this.fb.group({
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
@@ -50,18 +48,42 @@ export class OrdersComponent implements OnInit {
 
   ngOnInit() {
     this.initializePage();
+    const stompClient = this.webSocketService.getClient();
+    stompClient.onConnect = (frame) => {
+      console.log('Connected: ' + frame);
+
+      stompClient.subscribe('/topic/orders', (message) => {
+        if (message.body) {
+          this.handleWebSocketMessage(message.body);
+        }
+      });
+    };
+  }
+  
+  ngOnDestroy() {
+    this.webSocketService.disconnect();
   }
 
-  ngOnDestroy() {
-    this.stopAutoRefresh();
+  sendMessage(message: string) {
+    this.webSocketService.sendMessage(message);
   }
 
   initializePage(): void {
     this.selecionar().subscribe(() => {
-      if (this.autoRefreshEnabled) {
-        this.startAutoRefresh();
-      }
     });
+  }
+
+  private handleWebSocketMessage(message: string): void {
+    const updatedOrder = JSON.parse(message) as orders;
+    const existingOrderIndex = this.orders.findIndex(order => order.id === updatedOrder.id);
+
+    if (existingOrderIndex >= 0) {
+      this.orders[existingOrderIndex] = updatedOrder;
+    } else {
+      this.orders.push(updatedOrder);
+    }
+
+    this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
   }
 
   selecionar() {
@@ -75,42 +97,14 @@ export class OrdersComponent implements OnInit {
     );
   }
 
-  toggleAutoRefresh(): void {
-    this.autoRefreshEnabled = !this.autoRefreshEnabled;
-    if (this.autoRefreshEnabled) {
-      this.startAutoRefresh();
-    } else {
-      this.stopAutoRefresh();
-    }
-  }
-
-  private startAutoRefresh(): void {
-    if (!this.updateSubscription) {
-      this.updateSubscription = interval(3000).pipe(
-        switchMap(() => this.selecionar())
-      ).subscribe({
-        error: (err) => {
-          console.error('Erro ao atualizar pedidos:', err);
-        }
-      });
-    }
-  }
-
-  private stopAutoRefresh(): void {
-    if (this.updateSubscription) {
-      this.updateSubscription.unsubscribe();
-      this.updateSubscription = undefined;
-    }
-  }
-
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
     const priorityOrder = Prioridade;
     const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
     const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
-  
+
     return priorityA - priorityB;
   }
-  
+
 
   delete(id: number): void {
     this.service.deleteOrder(id).subscribe({
@@ -131,7 +125,7 @@ export class OrdersComponent implements OnInit {
       const orderToCreate = { ...this.createOrderForm.value, dataH: formattedDataH };
 
       console.log('Dados do pedido a serem enviados para o backend:', orderToCreate);
-      
+
       this.service.createOrder(orderToCreate).subscribe({
         next: (createdOrder) => {
           console.log('Pedido criado com sucesso:', createdOrder);
@@ -151,7 +145,7 @@ export class OrdersComponent implements OnInit {
       const formattedDataH = this.formatDateForBackend(this.editOrderForm.value.dataH);
       const orderToUpdate = { ...this.editOrderForm.value, dataH: formattedDataH };
       const id = this.editOrderForm.value.id;
-      
+
       this.service.updateOrder(id, orderToUpdate).subscribe({
         next: () => {
           this.selecionar();
