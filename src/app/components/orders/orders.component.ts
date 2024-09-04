@@ -1,19 +1,16 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { orders } from '../../models/orders';
-import { OrdersService } from '../../services/orders.service';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { orders } from '../../models/orders'; // Certifique-se de que a importação está correta para seu modelo
+import { Subscription, interval } from 'rxjs';
+import { WebsocketService } from '../../services/websocket.service';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Subscription, interval, switchMap, timer } from 'rxjs';
-import { WebSocketService } from '../../services/websocket.service';
-
-
-enum Prioridade {
-  Vermelho = 1,
-  Amarelo = 2,
-  Azul = 3,
-  Verde = 4,
-}
+import { OrdersService } from '../../services/orders.service';
 
 @Component({
   selector: 'app-orders',
@@ -22,19 +19,19 @@ enum Prioridade {
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.css'],
 })
-
-export class OrdersComponent implements OnInit {
+export class OrdersComponent implements OnInit, OnDestroy {
   orders: orders[] = [];
   createOrderForm: FormGroup;
   editOrderForm: FormGroup;
   editingOrder: orders | undefined;
+  ordersSubscription: Subscription | undefined;
 
-  constructor(private service: OrdersService, private fb: FormBuilder, private webSocketService: WebSocketService) {
+  constructor(private websocketService: WebsocketService, private fb: FormBuilder, private service: OrdersService) {
     this.createOrderForm = this.fb.group({
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
       prioridade: ['', Validators.required],
-      dataH: [new Date(), Validators.required],
+      dataEntrega: [new Date(), Validators.required],
     });
 
     this.editOrderForm = this.fb.group({
@@ -42,120 +39,79 @@ export class OrdersComponent implements OnInit {
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
       prioridade: ['', Validators.required],
-      dataH: [new Date(), Validators.required],
+      dataEntrega: [new Date(), Validators.required],
+      status: [''],
+      entregador: [''],
+      observacao: [''],
     });
   }
 
-  ngOnInit() {
-    this.initializePage();
-    const stompClient = this.webSocketService.getClient();
-    stompClient.onConnect = (frame) => {
-      console.log('Connected: ' + frame);
-
-      stompClient.subscribe('/topic/orders', (message) => {
-        if (message.body) {
-          this.handleWebSocketMessage(message.body);
-        }
-      });
-    };
-  }
-  
-  ngOnDestroy() {
-    this.webSocketService.disconnect();
-  }
-
-  sendMessage(message: string) {
-    this.webSocketService.sendMessage(message);
-  }
-
-  initializePage(): void {
-    this.selecionar().subscribe(() => {
+  ngOnInit(): void {
+    this.websocketService.watchOrders().subscribe((message: any) => {
+      const order = JSON.parse(message.body);
+      this.updateOrdersList(order);
+      console.log(order);
     });
   }
 
-  private handleWebSocketMessage(message: string): void {
-    const updatedOrder = JSON.parse(message) as orders;
-    const existingOrderIndex = this.orders.findIndex(order => order.id === updatedOrder.id);
-
-    if (existingOrderIndex >= 0) {
-      this.orders[existingOrderIndex] = updatedOrder;
+  updateOrdersList(order: any) {
+    const index = this.orders.findIndex(o => o.id === order.id);
+    if (index !== -1) {
+      this.orders[index] = order;
     } else {
-      this.orders.push(updatedOrder);
+      this.orders.push(order);
     }
-
-    this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
   }
-
-  selecionar() {
-    return this.service.getOrders().pipe(
-      switchMap((retorno) => {
-        this.orders = retorno
-          .filter(order => order.status !== 1)
-          .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
-        return [];
-      })
-    );
+  ngOnDestroy() {
+    this.ordersSubscription?.unsubscribe();
   }
 
   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
-    const priorityOrder = Prioridade;
-    const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
-    const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
+    const priorityOrder: { [key: string]: number } = {
+      Vermelho: 1,
+      Amarelo: 2,
+      Azul: 3,
+      Verde: 4,
+    };
+    const priorityA = priorityOrder[prioridadeA] ?? Infinity;
+    const priorityB = priorityOrder[prioridadeB] ?? Infinity;
 
     return priorityA - priorityB;
   }
 
-
   delete(id: number): void {
-    this.service.deleteOrder(id).subscribe({
-      next: () => {
-        console.log(`Pedido com ID ${id} excluído com sucesso.`);
-        this.selecionar();
-      },
-      error: (err) => {
-        console.error('Erro ao deletar o pedido:', err);
-      }
-    });
+    this.service.deleteOrder(id);
   }
 
   createOrder(): void {
     if (this.createOrderForm.valid) {
-      // Formatar a data
-      const formattedDataH = this.formatDateForBackend(this.createOrderForm.value.dataH);
-      const orderToCreate = { ...this.createOrderForm.value, dataH: formattedDataH };
+      const formattedDataEntrega = this.formatDateForBackend(
+        this.createOrderForm.value.dataEntrega
+      );
+      const orderToCreate = {
+        ...this.createOrderForm.value,
+        dataEntrega: formattedDataEntrega,
+      };
 
-      console.log('Dados do pedido a serem enviados para o backend:', orderToCreate);
-
-      this.service.createOrder(orderToCreate).subscribe({
-        next: (createdOrder) => {
-          console.log('Pedido criado com sucesso:', createdOrder);
-          this.selecionar();
-          this.createOrderForm.reset();
-          this.closeModal('createOrderModal');
-        },
-        error: (err) => {
-          console.error('Erro ao criar o pedido:', err);
-        }
-      });
+      this.service.createOrder(orderToCreate);
+      this.createOrderForm.reset();
+      this.closeModal('createOrderModal');
     }
   }
 
   updateOrder(): void {
     if (this.editOrderForm.valid) {
-      const formattedDataH = this.formatDateForBackend(this.editOrderForm.value.dataH);
-      const orderToUpdate = { ...this.editOrderForm.value, dataH: formattedDataH };
-      const id = this.editOrderForm.value.id;
+      const formattedDataEntrega = this.formatDateForBackend(
+        this.editOrderForm.value.dataEntrega
+      );
+      const orderToUpdate = {
+        ...this.editOrderForm.value,
+        dataEntrega: formattedDataEntrega,
+      };
 
-      this.service.updateOrder(id, orderToUpdate).subscribe({
-        next: () => {
-          this.selecionar();
-          this.editingOrder = undefined;
-          this.closeModal('editOrderModal');
-        },
-        error: (err) => {
-          console.error('Erro ao atualizar o pedido:', err);
-        }
-      });
+      this.service.updateOrder(orderToUpdate.id, orderToUpdate);
+      this.editingOrder = undefined;
+      this.closeModal('editOrderModal');
     }
   }
 
