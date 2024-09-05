@@ -1,28 +1,78 @@
-<!-- Modal para criar pedido -->
-<div id="createOrderModal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Pedidos</h1>
+    <button class="btn btn-primary" (click)="openCreateOrderModal()">Novo Pedido</button>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-6 col-md-3">
+      <p><span class="badge bg-danger">●</span> Alta Prioridade</p>
+    </div>
+    <div class="col-6 col-md-3">
+      <p><span class="badge bg-warning text-dark">●</span> Média Prioridade</p>
+    </div>
+    <div class="col-6 col-md-3">
+      <p><span class="badge bg-primary">●</span> Baixa Prioridade</p>
+    </div>
+    <div class="col-6 col-md-3">
+      <p><span class="badge bg-success">●</span> Muito Baixa Prioridade</p>
+    </div>
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>nr</th>
+        <th>cliente</th>
+        <th>prioridade</th>
+        <th>dataHora</th>
+        <th>ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of orders">
+        <td>{{ order.id }}</td>
+        <td>{{ order.nr }}</td>
+        <td>{{ order.cliente }}</td>
+        <td [ngStyle]="{'color': getPriorityColor(order.prioridade)}">
+          {{ order.prioridade }}
+        </td>
+        <td>{{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          <button class="btn btn-warning" (click)="openEditOrderModal(order)">Editar</button>
+          <button class="btn btn-danger" (click)="delete(order.id)">Excluir</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Criar Pedido</h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h5 class="modal-title" id="createOrderModalLabel">Novo Pedido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form [formGroup]="createOrderForm" (ngSubmit)="createOrder()">
-          <div class="form-group">
-            <label for="nr">Número</label>
+          <div class="mb-3">
+            <label for="nr" class="form-label">Número</label>
             <input type="text" id="nr" formControlName="nr" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="cliente">Cliente</label>
+          <div class="mb-3">
+            <label for="cliente" class="form-label">Cliente</label>
             <input type="text" id="cliente" formControlName="cliente" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="prioridade">Prioridade</label>
+          <div class="mb-3">
+            <label for="prioridade" class="form-label">Prioridade</label>
             <input type="text" id="prioridade" formControlName="prioridade" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="dataEntrega">Data</label>
-            <input type="datetime-local" id="dataEntrega" formControlName="dataEntrega" class="form-control">
+          <div class="mb-3">
+            <label for="dataH" class="form-label">Data e Hora</label>
+            <input type="datetime-local" id="dataH" formControlName="dataH" class="form-control">
           </div>
           <button type="submit" class="btn btn-primary">Criar Pedido</button>
         </form>
@@ -31,32 +81,30 @@
   </div>
 </div>
 
-<!-- Modal para editar pedido -->
-<div id="editOrderModal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
+<div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Editar Pedido</h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h5 class="modal-title" id="editOrderModalLabel">Editar Pedido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form [formGroup]="editOrderForm" (ngSubmit)="updateOrder()">
-          <input type="hidden" formControlName="id">
-          <div class="form-group">
-            <label for="nr">Número</label>
+          <div class="mb-3">
+            <label for="nr" class="form-label">Número</label>
             <input type="text" id="nr" formControlName="nr" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="cliente">Cliente</label>
+          <div class="mb-3">
+            <label for="cliente" class="form-label">Cliente</label>
             <input type="text" id="cliente" formControlName="cliente" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="prioridade">Prioridade</label>
+          <div class="mb-3">
+            <label for="prioridade" class="form-label">Prioridade</label>
             <input type="text" id="prioridade" formControlName="prioridade" class="form-control">
           </div>
-          <div class="form-group">
-            <label for="dataEntrega">Data</label>
-            <input type="datetime-local" id="dataEntrega" formControlName="dataEntrega" class="form-control">
+          <div class="mb-3">
+            <label for="dataH" class="form-label">Data e Hora</label>
+            <input type="datetime-local" id="dataH" formControlName="dataH" class="form-control">
           </div>
           <button type="submit" class="btn btn-primary">Atualizar Pedido</button>
         </form>
@@ -65,29 +113,5 @@
   </div>
 </div>
 
-<!-- Lista de pedidos -->
-<table class="table">
-  <thead>
-    <tr>
-      <th>Número</th>
-      <th>Cliente</th>
-      <th>Prioridade</th>
-      <th>Data</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let order of orders">
-      <td>{{ order.nr }}</td>
-      <td>{{ order.cliente }}</td>
-      <td [ngStyle]="{'color': getPriorityColor(order.prioridade)}">{{ order.prioridade }}</td>
-      <td>{{ order.dataH | date:'dd/MM/yyyy HH:mm:ss' }}</td>
-      <td>
-        <button (click)="openEditOrderModal(order)" class="btn btn-warning">Editar</button>
-        <button (click)="delete(order.id)" class="btn btn-danger">Excluir</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<button (click)="openCreateOrderModal()" class="btn btn-primary">Criar Pedido</button>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.min.js"></script>

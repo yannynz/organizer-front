@@ -47,12 +47,51 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Carrega os pedidos existentes no início
+    this.service.getOrders().subscribe((existingOrders: orders[]) => {
+      this.orders = existingOrders;
+    });
+
+    // Escuta os eventos via WebSocket
     this.websocketService.watchOrders().subscribe((message: any) => {
-      const order = JSON.parse(message.body);
-      this.updateOrdersList(order);
-      console.log(order);
+      const receivedMessage = JSON.parse(message.body);
+
+      switch (receivedMessage.action) {
+        case 'create':
+          this.addOrder(receivedMessage.data);
+          break;
+        case 'update':
+          this.updateOrder(receivedMessage.data);
+          break;
+        case 'delete':
+          this.removeOrder(receivedMessage.data); // data seria o ID do pedido deletado
+          break;
+        default:
+          console.warn('Ação desconhecida:', receivedMessage.action);
+      }
     });
   }
+
+  addOrder(newOrder: orders) {
+    const index = this.orders.findIndex(o => o.id === newOrder.id);
+    if (index === -1) {
+      this.orders.push(newOrder);
+      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    }
+  }
+
+  updateOrder(updatedOrder: orders) {
+    const index = this.orders.findIndex(o => o.id === updatedOrder.id);
+    if (index !== -1) {
+      this.orders[index] = updatedOrder;
+      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    }
+  }
+
+  removeOrder(orderId: number) {
+    this.orders = this.orders.filter(order => order.id !== orderId);
+  }
+
 
   updateOrdersList(order: any) {
     const index = this.orders.findIndex(o => o.id === order.id);
@@ -61,6 +100,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     } else {
       this.orders.push(order);
     }
+    this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
   }
   ngOnDestroy() {
     this.ordersSubscription?.unsubscribe();
@@ -77,42 +117,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const priorityB = priorityOrder[prioridadeB] ?? Infinity;
 
     return priorityA - priorityB;
-  }
-
-  delete(id: number): void {
-    this.service.deleteOrder(id);
-  }
-
-  createOrder(): void {
-    if (this.createOrderForm.valid) {
-      const formattedDataEntrega = this.formatDateForBackend(
-        this.createOrderForm.value.dataEntrega
-      );
-      const orderToCreate = {
-        ...this.createOrderForm.value,
-        dataEntrega: formattedDataEntrega,
-      };
-
-      this.service.createOrder(orderToCreate);
-      this.createOrderForm.reset();
-      this.closeModal('createOrderModal');
-    }
-  }
-
-  updateOrder(): void {
-    if (this.editOrderForm.valid) {
-      const formattedDataEntrega = this.formatDateForBackend(
-        this.editOrderForm.value.dataEntrega
-      );
-      const orderToUpdate = {
-        ...this.editOrderForm.value,
-        dataEntrega: formattedDataEntrega,
-      };
-
-      this.service.updateOrder(orderToUpdate.id, orderToUpdate);
-      this.editingOrder = undefined;
-      this.closeModal('editOrderModal');
-    }
   }
 
   openCreateOrderModal(): void {
