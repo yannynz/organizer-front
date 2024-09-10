@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { OrdersService } from '../../services/orders.service';
+import { OrderService } from '../../services/orders.service';
 import { orders } from '../../models/orders';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -12,70 +12,70 @@ import { CommonModule } from '@angular/common';
   templateUrl: './delivered.component.html',
   styleUrls: ['./delivered.component.css'],
 })
-export class DeliveredComponent implements OnInit, OnDestroy {
-  orders: orders[] = [];
-  paginatedOrders: orders[] = [];
-  searchTerm: string = '';
-  currentPage: number = 1;
-  pageSize: number = 10;
-  totalPages: number = 1;
-  pageNumbers: number[] = [];
-  reloadInterval: any;
+ export class DeliveredComponent  {}
+//   orders: orders[] = [];
+//   paginatedOrders: orders[] = [];
+//   searchTerm: string = '';
+//   currentPage: number = 1;
+//   pageSize: number = 10;
+//   totalPages: number = 1;
+//   pageNumbers: number[] = [];
+//   reloadInterval: any;
 
-  constructor(private orderService: OrdersService) {}
+//   constructor(private orderService: OrdersService) {}
 
-  ngOnInit(): void {
-    this.loadOrders();
-    
-  }
+//   ngOnInit(): void {
+//     this.loadOrders();
 
-  ngOnDestroy(): void {
-    clearInterval(this.reloadInterval);
-  }
+//   }
 
-  loadOrders(): void {
-    this.orderService.getDeliveredOrders().subscribe((data) => {
-      this.orders = data
-        .filter((order) => order.status === 1)
-        .map((order) => ({ ...order, isOpen: false }));
-      this.searchOrders();
-      this.calculatePagination();
-    });
-  }
+//   ngOnDestroy(): void {
+//     clearInterval(this.reloadInterval);
+//   }
 
-  calculatePagination(): void {
-    const itemsPerPage = this.pageSize;
-    this.totalPages = Math.ceil(this.orders.length / itemsPerPage);
-    this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
-    this.paginateOrders();
-  }
+//   loadOrders(): void {
+//     this.orderService.getDeliveredOrders().subscribe((data) => {
+//       this.orders = data
+//         .filter((order) => order.status === 1)
+//         .map((order) => ({ ...order, isOpen: false }));
+//       this.searchOrders();
+//       this.calculatePagination();
+//     });
+//   }
 
-  paginateOrders(): void {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.paginatedOrders = this.orders.slice(startIndex, endIndex);
-  }
+//   calculatePagination(): void {
+//     const itemsPerPage = this.pageSize;
+//     this.totalPages = Math.ceil(this.orders.length / itemsPerPage);
+//     this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+//     this.paginateOrders();
+//   }
 
-  changePage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
-    this.orders.forEach((order) => (order.isOpen = false));
-    this.paginateOrders();
-  }
+//   paginateOrders(): void {
+//     const startIndex = (this.currentPage - 1) * this.pageSize;
+//     const endIndex = startIndex + this.pageSize;
+//     this.paginatedOrders = this.orders.slice(startIndex, endIndex);
+//   }
 
-  searchOrders(): void {
-    this.currentPage = 1;
-    const searchTermLower = this.searchTerm.toLowerCase();
-    this.orders = this.orders.filter(
-      (order) =>
-        order.nr.toLowerCase().includes(searchTermLower) ||
-        order.cliente.toLowerCase().includes(searchTermLower) ||
-        order.id.toString().includes(this.searchTerm)
-    );
-    this.calculatePagination();
-  }
+//   changePage(page: number): void {
+//     if (page < 1 || page > this.totalPages) return;
+//     this.currentPage = page;
+//     this.orders.forEach((order) => (order.isOpen = false));
+//     this.paginateOrders();
+//   }
 
-  toggleAccordion(order: orders): void {
-    order.isOpen = !order.isOpen;
-  }
-}
+//   searchOrders(): void {
+//     this.currentPage = 1;
+//     const searchTermLower = this.searchTerm.toLowerCase();
+//     this.orders = this.orders.filter(
+//       (order) =>
+//         order.nr.toLowerCase().includes(searchTermLower) ||
+//         order.cliente.toLowerCase().includes(searchTermLower) ||
+//         order.id.toString().includes(this.searchTerm)
+//     );
+//     this.calculatePagination();
+//   }
+
+//   toggleAccordion(order: orders): void {
+//     order.isOpen = !order.isOpen;
+//   }
+// }

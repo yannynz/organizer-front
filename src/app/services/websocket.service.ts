@@ -30,4 +30,16 @@ export class WebsocketService {
   public watchOrders(): Observable<any> {
     return this.rxStompService.watch('/topic/orders');
   }
+ // Envia um pedido para criação via WebSocket
+  public sendCreateOrder(order: any): void {
+    this.rxStompService.publish({ destination: '/app/orders/create', body: JSON.stringify(order) });
+  }
+
+  public sendUpdateOrder(order: any): void {
+    this.rxStompService.publish({ destination: '/app/orders/update', body: JSON.stringify(order) });
+  }
+
+  public sendDeleteOrder(orderId: number): void {
+    this.rxStompService.publish({ destination: `/orders/delete/${orderId}` });
+  }
 }

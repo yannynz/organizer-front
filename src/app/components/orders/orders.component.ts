@@ -6,11 +6,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { orders } from '../../models/orders'; // Certifique-se de que a importação está correta para seu modelo
-import { Subscription, interval } from 'rxjs';
+import { orders } from '../../models/orders';
+import { Subscription } from 'rxjs';
 import { WebsocketService } from '../../services/websocket.service';
 import { CommonModule } from '@angular/common';
-import { OrdersService } from '../../services/orders.service';
+import { OrderService } from '../../services/orders.service';
 
 @Component({
   selector: 'app-orders',
@@ -25,16 +25,21 @@ export class OrdersComponent implements OnInit, OnDestroy {
   editOrderForm: FormGroup;
   editingOrder: orders | undefined;
   ordersSubscription: Subscription | undefined;
+  selectedOrder: orders | null = null; // Armazena o pedido selecionado para edição
 
-  constructor(private websocketService: WebsocketService, private fb: FormBuilder, private service: OrdersService) {
-    this.createOrderForm = this.fb.group({
+  constructor(
+    private formBuilder: FormBuilder,
+    private orderService: OrderService,
+    private websocketService: WebsocketService
+  ) {
+    this.createOrderForm = this.formBuilder.group({
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
       prioridade: ['', Validators.required],
       dataEntrega: [new Date(), Validators.required],
     });
 
-    this.editOrderForm = this.fb.group({
+    this.editOrderForm = this.formBuilder.group({
       id: [''],
       nr: ['', Validators.required],
       cliente: ['', Validators.required],
@@ -43,91 +48,126 @@ export class OrdersComponent implements OnInit, OnDestroy {
       status: [''],
       entregador: [''],
       observacao: [''],
+      dataH: ['']
     });
   }
 
-  ngOnInit(): void {
-    // Carrega os pedidos existentes no início
-    this.service.getOrders().subscribe((existingOrders: orders[]) => {
-      this.orders = existingOrders;
+  ngOnDestroy(): void {
+    this.ordersSubscription?.unsubscribe();
+  }
+
+  ngOnInit() {
+    // Inicialização dos pedidos e subscrição via WebSocket
+    this.loadOrders();
+    this.listenForWebSocketUpdates();
+  }
+
+  loadOrders() {
+    // Carrega todos os pedidos existentes
+    this.orderService.getOrders().subscribe((orders: orders[]) => {
+      this.orders = orders;
     });
+    this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
 
-    // Escuta os eventos via WebSocket
+  }
+
+  listenForWebSocketUpdates() {
     this.websocketService.watchOrders().subscribe((message: any) => {
-      const receivedMessage = JSON.parse(message.body);
-
-      switch (receivedMessage.action) {
-        case 'create':
-          this.addOrder(receivedMessage.data);
-          break;
-        case 'update':
-          this.updateOrder(receivedMessage.data);
-          break;
-        case 'delete':
-          this.removeOrder(receivedMessage.data); // data seria o ID do pedido deletado
-          break;
-        default:
-          console.warn('Ação desconhecida:', receivedMessage.action);
+      const receivedOrder = JSON.parse(message.body);
+      // Lógica de atualização, criação ou exclusão com base na ação
+      const order = receivedOrder;
+      if (receivedOrder.action === 'delete') {
+        this.orders = this.orders.filter(o => o.id !== order.id);
+      } else {
+        this.updateOrdersList(order);
       }
     });
   }
 
-  addOrder(newOrder: orders) {
-    const index = this.orders.findIndex(o => o.id === newOrder.id);
-    if (index === -1) {
-      this.orders.push(newOrder);
-      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+  openCreateOrderModal() {
+    // Abre o modal de criação
+    this.createOrderForm.reset();
+    const modal = new (window as any).bootstrap.Modal(document.getElementById('createOrderModal')!);
+    modal.show();
+  }
+
+  openEditOrderModal(order: orders) {
+    // Abre o modal de edição com os dados preenchidos
+    this.selectedOrder = order;
+    this.editOrderForm.patchValue({
+      nr: order.nr,
+      cliente: order.cliente,
+      prioridade: order.prioridade,
+      dataEntrega: order.dataEntrega
+    });
+    const modal = new (window as any).bootstrap.Modal(document.getElementById('editOrderModal')!);
+    modal.show();
+  }
+
+  closeModal(modalId: string) {
+    const modalElement = document.getElementById(modalId);
+    if (modalElement) {
+      const modalInstance = new (window as any).bootstrap.Modal(modalElement);
+      modalInstance.hide();
     }
   }
 
-  updateOrder(updatedOrder: orders) {
-    const index = this.orders.findIndex(o => o.id === updatedOrder.id);
-    if (index !== -1) {
-      this.orders[index] = updatedOrder;
-      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+  createOrder() {
+    // Chama o serviço para criar um novo pedido
+    const newOrder = this.createOrderForm.value;
+    this.orderService.createOrder(newOrder).subscribe(() => {
+      this.createOrderForm.reset();
+      // Fecha o modal de criação
+      this.closeModal('createOrderModal');
+      this.loadOrders(); // Atualiza a lista de pedidos
+    });
+  }
+
+  updateOrder(): void {
+    if (this.editOrderForm.valid) {
+      // Atualiza o pedido com os valores do formulário
+      const updatedOrder = { ...this.editingOrder, ...this.editOrderForm.value };
+
+      // Chama o serviço para atualizar o pedido
+      this.orderService.updateOrder(updatedOrder.id, updatedOrder).subscribe({
+        next: (response) => {
+          console.log('Pedido atualizado com sucesso:', response);
+          this.loadOrders(); // Atualiza a lista de pedidos
+          this.editOrderForm.reset();
+          this.editingOrder = undefined;
+          this.closeModal('editOrderModal');
+        },
+        error: (err) => {
+          console.error('Erro ao atualizar o pedido:', err);
+        }
+      });
     }
   }
 
-  removeOrder(orderId: number) {
-    this.orders = this.orders.filter(order => order.id !== orderId);
+  delete(orderId: number) {
+    // Chama o serviço para deletar o pedido
+    if (confirm('Tem certeza que deseja excluir este pedido?')) {
+      this.orderService.deleteOrder(orderId).subscribe(() => {
+        // Remove o pedido da lista local
+        this.orders = this.orders.filter(order => order.id !== orderId);
+      });
+    }
   }
 
-
-  updateOrdersList(order: any) {
+  updateOrdersList(order: orders) {
     const index = this.orders.findIndex(o => o.id === order.id);
     if (index !== -1) {
-      this.orders[index] = order;
+      this.orders[index] = order; // Atualiza o pedido existente
     } else {
-      this.orders.push(order);
+      this.orders.push(order); // Adiciona um novo pedido
     }
+    // Organiza a lista de pedidos pela prioridade
     this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
   }
-  ngOnDestroy() {
-    this.ordersSubscription?.unsubscribe();
-  }
 
-  private comparePriorities(prioridadeA: string, prioridadeB: string): number {
-    const priorityOrder: { [key: string]: number } = {
-      Vermelho: 1,
-      Amarelo: 2,
-      Azul: 3,
-      Verde: 4,
-    };
-    const priorityA = priorityOrder[prioridadeA] ?? Infinity;
-    const priorityB = priorityOrder[prioridadeB] ?? Infinity;
-
-    return priorityA - priorityB;
-  }
-
-  openCreateOrderModal(): void {
-    this.createOrderForm.reset();
-    this.openModal('createOrderModal');
-  }
-
-  openEditOrderModal(order: orders): void {
-    this.editingOrder = order;
-    this.editOrderForm.patchValue(order);
-    this.openModal('editOrderModal');
+  comparePriorities(priorityA: string, priorityB: string) {
+    const priorities = ['Vermelho', 'Amarelo', 'Azul', 'Verde']; // Corrigido
+    return priorities.indexOf(priorityA) - priorities.indexOf(priorityB);
   }
 
   getPriorityColor(prioridade: string): string {
@@ -135,41 +175,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
       case 'Vermelho':
         return 'red';
       case 'Amarelo':
-        return 'yellow';
+        return 'orange';
       case 'Azul':
         return 'blue';
       case 'Verde':
         return 'green';
       default:
         return 'black';
-    }
-  }
-
-  private formatDateForBackend(date: Date | string): string {
-    if (date instanceof Date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-    return date;
-  }
-
-  private openModal(modalId: string): void {
-    const modalElement = document.getElementById(modalId);
-    if (modalElement) {
-      const bootstrapModal = new (window as any).bootstrap.Modal(modalElement);
-      bootstrapModal.show();
-    }
-  }
-
-  private closeModal(modalId: string): void {
-    const modalElement = document.getElementById(modalId);
-    if (modalElement) {
-      const bootstrapModal = new (window as any).bootstrap.Modal(modalElement);
-      bootstrapModal.hide();
     }
   }
 }

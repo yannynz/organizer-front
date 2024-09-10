@@ -36,10 +36,10 @@
         <td>{{ order.id }}</td>
         <td>{{ order.nr }}</td>
         <td>{{ order.cliente }}</td>
-        <td [ngStyle]="{'color': getPriorityColor(order.prioridade)}">
-          {{ order.prioridade }}
+        <td [ngStyle]="{'background-color': getPriorityColor(order.prioridade)}">
+        {{ order.prioridade }}
         </td>
-        <td>{{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ order.dataH | date: 'dd/MM HH:mm' }}</td>
         <td>
           <button class="btn btn-warning" (click)="openEditOrderModal(order)">Editar</button>
           <button class="btn btn-danger" (click)="delete(order.id)">Excluir</button>
@@ -106,7 +106,7 @@
             <label for="dataH" class="form-label">Data e Hora</label>
             <input type="datetime-local" id="dataH" formControlName="dataH" class="form-control">
           </div>
-          <button type="submit" class="btn btn-primary">Atualizar Pedido</button>
+          <button type="submit" class="btn btn-primary" (click)="updateOrder()">Atualizar Pedido</button>
         </form>
       </div>
     </div>
