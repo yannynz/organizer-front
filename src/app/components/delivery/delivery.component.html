@@ -1,77 +1,147 @@
-<!-- <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Entrega de Pedidos</h1>
-    <button class="btn btn-primary" (click)="preConfirmDelivery()">Confirmar Entrega</button>
-  </div>
+<!-- DeliveryComponent HTML -->
 
+<div class="container d-flex">
+  <!-- Botão de Confirmar Pedido -->
+  <button (click)="preConfirmDelivery()" class="btn btn-primary ms-auto">
+    Confirmar Pedido
+  </button>
+</div>
+  <!-- Tabela de Pedidos -->
   <table class="table table-striped">
     <thead>
       <tr>
-        <th></th>
-        <th>ID</th>
-        <th>NR</th>
-        <th>Cliente</th>
-        <th>Prioridade</th>
-        <th>dataHora</th>
+        <th scope="col">Selecionar</th>
+        <th scope="col">Id</th>
+        <th scope="col">NR</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Prioridade</th>
+        <th scope="col">DataHora</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let order of orders">
-        <td><input type="checkbox" (change)="onOrderSelectionChange(order, $event)"
-            [checked]="selectedOrders.includes(order)" /></td>
-        <td>{{order.id}}</td>
+        <td>
+          <input
+            type="checkbox"
+            (change)="onOrderSelectionChange(order, $event)"
+          />
+        </td>
+        <td>{{ order.id }}</td>
         <td>{{ order.nr }}</td>
         <td>{{ order.cliente }}</td>
-        <td [ngStyle]="{'color': getPriorityColor(order.prioridade)}">{{ order.prioridade }}</td>
-        <td>{{order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
-        <td>
+        <td [style.color]="getPriorityColor(order.prioridade)">
+          {{ order.prioridade }}
         </td>
+        <td>{{ order.dataH | date: 'dd/MM HH:mm'  }}</td>
       </tr>
     </tbody>
   </table>
 
-<div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <!-- Modal de Entrega -->
+<div
+  class="modal fade"
+  id="deliveryModal"
+  tabindex="-1"
+  aria-labelledby="deliveryModalLabel"
+  aria-hidden="true"
+  #deliveryModal
+>
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title" id="deliveryModalLabel">Realizar Entrega</h1>
-        <button type="button" #deliveryModalClose class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="deliveryModalLabel">Detalhes da Entrega</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
       </div>
       <div class="modal-body">
-        <div *ngIf="selectedOrders.length > 0" class="mb-3">
-          <h1>Pedidos Selecionados:</h1>
-          <ul>
-            <li *ngFor="let order of selectedOrders">
-              {{ order.nr }} - {{ order.cliente }} - {{ order.prioridade }} - {{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}
-            </li>
-          </ul>
-        </div>
-        <form [formGroup]="deliveryForm" (ngSubmit)="confirmDelivery()">
+        <form [formGroup]="deliveryForm">
           <div class="mb-3">
-            <label for="deliveryPerson" class="form-label">Nome do Entregador</label>
-            <input type="text" id="deliveryPerson" formControlName="deliveryPerson" class="form-control" required>
+            <label for="deliveryPerson" class="form-label">Entregador</label>
+            <input
+              formControlName="deliveryPerson"
+              type="text"
+              class="form-control"
+              id="deliveryPerson"
+            />
           </div>
           <div class="mb-3">
-            <label for="notes" class="form-label">Observação</label>
-            <textarea id="notes" formControlName="notes" class="form-control"></textarea>
+            <label for="notes" class="form-label">Observações</label>
+            <textarea
+              formControlName="notes"
+              class="form-control"
+              id="notes"
+            ></textarea>
           </div>
-          <button type="submit" class="btn btn-primary">Confirmar Entrega</button>
+          <div class="mb-3">
+            <label for="deliveryType" class="form-label">Tipo de Entrega</label>
+            <select
+              formControlName="deliveryType"
+              class="form-select"
+              id="deliveryType"
+            >
+              <option value="3">Sair para Entrega</option>
+              <option value="4">Retirada</option>
+            </select>
+          </div>
         </form>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+        >
+          Fechar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="confirmDelivery()"
+        >
+          Confirmar Entrega
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="thankYouModal" tabindex="-1" aria-labelledby="thankYouModalLabel" aria-hidden="true">
+<!-- Modal de Agradecimento -->
+<div
+  class="modal fade"
+  id="thankYouModal"
+  tabindex="-1"
+  aria-labelledby="thankYouModalLabel"
+  aria-hidden="true"
+  #thankYouModal
+>
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="thankYouModalLabel">Obrigado!</h5>
-        <button type="button" #thankYouModalClose class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
       </div>
       <div class="modal-body">
-        <p>Obrigado por confirmar a entrega. Tenha uma boa viagem!</p>
+        <p>O pedido foi confirmado com sucesso!</p>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="closeThankYouModal()"
+        >
+          Fechar
+        </button>
       </div>
     </div>
   </div>
-</div> -->
+</div>
+

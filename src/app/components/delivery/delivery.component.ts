@@ -1,135 +1,139 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { OrderService } from '../../services/orders.service';
 import { orders } from '../../models/orders';
+import { WebsocketService } from '../../services/websocket.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 
-enum Prioridade {
-  Vermelho = 1,
-  Amarelo = 2,
-  Azul = 3,
-  Verde = 4,
-}
 @Component({
   selector: 'app-delivery',
   standalone: true,
-  imports: [FormsModule, CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './delivery.component.html',
   styleUrls: ['./delivery.component.css'],
 })
+export class DeliveryComponent implements OnInit {
+  orders: orders[] = [];
+  selectedOrders: orders[] = [];
+  deliveryForm: FormGroup;
 
- export class DeliveryComponent  {}
-//   orders: orders[] = [];
-//   selectedOrders: orders[] = [];
-//   deliveryForm: FormGroup;
-//   isModalVisible: boolean = false;
-//   @ViewChild('deliveryModalClose') deliveryModalClose: ElementRef | undefined;
-//   @ViewChild('thankYouModalClose') thankYouModalClose: ElementRef | undefined;
+  @ViewChild('deliveryModal') deliveryModal!: ElementRef;
+  @ViewChild('thankYouModal') thankYouModal!: ElementRef;
 
-//   constructor(private ordersService: OrdersService, private fb: FormBuilder) {
-//     this.deliveryForm = this.fb.group({
-//       deliveryPerson: ['', Validators.required],
-//       notes: [''],
-//     });
-//   }
+  private deliveryModalInstance: any;
+  private thankYouModalInstance: any;
 
-//   ngOnInit(): void {
-//     this.loadOrders();
-//   }
+  constructor(
+    private orderService: OrderService,
+    private fb: FormBuilder,
+    private websocketService: WebsocketService
+  ) {
+    this.deliveryForm = this.fb.group({
+      deliveryPerson: ['', Validators.required],
+      notes: [''],
+      deliveryType: ['', Validators.required],
+    });
+  }
 
-//   loadOrders(): void {
-//     this.ordersService.getOrders().subscribe((orders) => {
-//       this.orders = orders
-//         .filter((order) => order.status === 0)
-//         .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
-//     });
-//   }
+  ngOnInit(): void {
+    this.loadOrders();
+    this.listenForNewOrders();
+  }
 
-//   private comparePriorities(prioridadeA: string, prioridadeB: string): number {
-//     const priorityOrder = Prioridade;
-//     const priorityA = priorityOrder[prioridadeA as keyof typeof priorityOrder] ?? Infinity;
-//     const priorityB = priorityOrder[prioridadeB as keyof typeof priorityOrder] ?? Infinity;
-//     return priorityA - priorityB;
-//   }
+  ngAfterViewInit(): void {
+    // Inicializar os modais após os elementos do DOM estarem prontos
+    this.initializeModals();
+  }
 
-//   onOrderSelectionChange(order: orders, event: any): void {
-//     if (event.target.checked) {
-//       this.selectedOrders.push(order);
-//     } else {
-//       this.selectedOrders = this.selectedOrders.filter((o) => o !== order);
-//     }
-//   }
+  initializeModals() {
+    if (this.deliveryModal) {
+      this.deliveryModalInstance = new (window as any).bootstrap.Modal(this.deliveryModal.nativeElement);
+      console.log('Delivery Modal initialized:', this.deliveryModalInstance);
+    }
 
-//   openDeliveryModal(): void {
-//     this.deliveryForm.reset();
-//     const modal = document.getElementById('deliveryModal');
-//     if (modal) {
-//       const bootstrapModal = new (window as any).bootstrap.Modal(modal);
-//       bootstrapModal.show();
-//     }
-//   }
+    if (this.thankYouModal) {
+      this.thankYouModalInstance = new (window as any).bootstrap.Modal(this.thankYouModal.nativeElement);
+      console.log('Thank You Modal initialized:', this.thankYouModalInstance);
+    }
+  }
 
-// closeModal(modalId: string): void {
-//   this.isModalVisible = false;
-//   const modalElement = document.getElementById(modalId);
-//   if (modalElement) {
-//     const bootstrapModal = new (window as any).bootstrap.Modal(modalElement);
-//     bootstrapModal.hide();
-//   }
-// }
+  loadOrders(): void {
+    this.orderService.getOrders().subscribe((orders) => {
+      this.orders = orders
+        .filter((order) => order.status === 0 || order.status === 1 || order.status === 2)
+        .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    });
+  }
 
+  listenForNewOrders(): void {
+    this.websocketService.watchOrders().subscribe((order) => {
+      this.orders.push(order);
+      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    });
+  }
 
-//   getPriorityColor(prioridade: string): string {
-//     switch (prioridade) {
-//       case 'Vermelho':
-//         return 'red';
-//       case 'Amarelo':
-//         return 'yellow';
-//       case 'Azul':
-//         return 'blue';
-//       case 'Verde':
-//         return 'green';
-//       default:
-//         return 'black';
-//     }
-//   }
+  onOrderSelectionChange(order: orders, event: any): void {
+    if (event.target.checked) {
+      this.selectedOrders.push(order);
+    } else {
+      this.selectedOrders = this.selectedOrders.filter((o) => o !== order);
+    }
+  }
 
-//   preConfirmDelivery(): void {
-//     if (this.selectedOrders.length == 0) {
-//       alert('Nenhum pedido selecionado');
-//       return;
-//     } else {
-//       this.openDeliveryModal();
-//     }
-//   }
+  preConfirmDelivery(): void {
+    if (this.selectedOrders.length === 0) {
+      alert('Nenhum pedido selecionado');
+    } else {
+      this.deliveryForm.reset();
+      console.log('Opening Delivery Modal');
+      this.deliveryModalInstance.show(); // Mostrar modal de entrega
+    }
+  }
 
-//   confirmDelivery(): void {
-//     const deliveryPerson = this.deliveryForm.get('deliveryPerson')?.value;
-//     const notes = this.deliveryForm.get('notes')?.value;
+  confirmDelivery(): void {
+    if (this.deliveryForm.invalid) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
 
-//     this.selectedOrders.forEach((order) => {
-//       this.ordersService.updateOrderStatus(order.id, 1, deliveryPerson, notes).subscribe(() => {
-//         this.loadOrders();
-//       });
-//     });
+    const deliveryPerson = this.deliveryForm.get('deliveryPerson')?.value;
+    const notes = this.deliveryForm.get('notes')?.value;
+    const deliveryType = this.deliveryForm.get('deliveryType')?.value;
 
-//     if (this.deliveryModalClose) {
-//       this.deliveryModalClose.nativeElement.click();
-//     }
+    this.selectedOrders.forEach((order) => {
+      this.orderService.updateOrderStatus(order.id, deliveryType, deliveryPerson, notes).subscribe(() => {
+        this.loadOrders();
+      });
+    });
 
-//     if (this.thankYouModalClose) {
-//       const thankYouModal = document.getElementById('thankYouModal');
-//       if (thankYouModal) {
-//         const bootstrapModal = new (window as any).bootstrap.Modal(thankYouModal);
-//         bootstrapModal.show();
-//       }
-//     }
-//   }
+    this.deliveryModalInstance.hide(); // Fechar modal de entrega
+    this.thankYouModalInstance.show(); // Mostrar modal de agradecimento
+  }
 
-// }
+  closeThankYouModal(): void {
+    this.thankYouModalInstance.hide();
+  }
+
+  comparePriorities(priorityA: string, priorityB: string) {
+    const priorities = ['Vermelho', 'Amarelo', 'Azul', 'Verde'];
+    return priorities.indexOf(priorityA) - priorities.indexOf(priorityB);
+  }
+
+  getPriorityColor(prioridade: string): string {
+    switch (prioridade) {
+      case 'Vermelho':
+        return 'red';
+      case 'Amarelo':
+        return 'orange';
+      case 'Azul':
+        return 'blue';
+      case 'Verde':
+        return 'green';
+      default:
+        return 'black';
+    }
+  }
+}
+

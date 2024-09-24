@@ -37,6 +37,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       cliente: ['', Validators.required],
       prioridade: ['', Validators.required],
       dataEntrega: [new Date(), Validators.required],
+      dataH: [''],
     });
 
     this.editOrderForm = this.formBuilder.group({
@@ -62,14 +63,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.listenForWebSocketUpdates();
   }
 
-  loadOrders() {
-    // Carrega todos os pedidos existentes
-    this.orderService.getOrders().subscribe((orders: orders[]) => {
-      this.orders = orders;
-    });
+ loadOrders() {
+  // Carrega todos os pedidos existentes
+  this.orderService.getOrders().subscribe((orders: orders[]) => {
+    this.orders = orders.filter(order => order.status !== 3 && order.status !== 4);
     this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
-
-  }
+  });
+}
 
   listenForWebSocketUpdates() {
     this.websocketService.watchOrders().subscribe((message: any) => {
