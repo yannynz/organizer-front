@@ -1,77 +1,85 @@
-<!-- <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Pedidos Entregues</h1>
-    <input
-      type="text"
-      class="form-control w-50"
-      placeholder="Pesquisar por ID, NR ou Cliente"
-      [(ngModel)]="searchTerm"
-      (ngModelChange)="searchOrders()"
-    />
-  </div>
+<div class="container">
+  <form [formGroup]="returnForm" (ngSubmit)="loadOrders()">
+    <div class="mb-3">
+      <label for="search" class="form-label">Buscar Pedido</label>
+      <input formControlName="search" type="text" class="form-control" id="search" placeholder="ID, NR, Cliente, Prioridade..." />
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar</button>
+  </form>
 
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>NR</th>
-        <th>Cliente</th>
-        <th>Data e Hora (pC)</th>
-        <th>Data e Hora (pE)</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <ng-container *ngFor="let order of paginatedOrders">
-        <tr (click)="toggleAccordion(order)">
+  <div *ngIf="orders.length > 0">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">Id</th>
+          <th scope="col">NR</th>
+          <th scope="col">Cliente</th>
+          <th scope="col">Prioridade</th>
+          <th scope="col">DataHora</th>
+          <th scope="col">Status</th>
+          <th scope="col">Entregador</th>
+          <th scope="col">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of orders">
           <td>{{ order.id }}</td>
           <td>{{ order.nr }}</td>
           <td>{{ order.cliente }}</td>
-          <td>{{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</td>
-          <td>{{ order.dataEntrega | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td [style.color]="getPriorityColor(order.prioridade)">
+            {{ order.prioridade }}
+          </td>
+          <td>{{ order.dataH | date: 'dd/MM HH:mm' }}</td>
+          <td>{{ order.status }}</td>
+          <td>{{ order.entregador }}</td>
           <td>
-            <span class="accordion-icon" [class.open]="order.isOpen">></span>
+            <button class="btn btn-info" (click)="openOrderDetails(order)">
+              Detalhes
+            </button>
           </td>
         </tr>
-        <tr *ngIf="order.isOpen">
-          <td colspan="6">
-            <div class="accordion">
-              <div class="accordion-item">
-                <div class="accordion-header" id="heading{{ order.id }}">
-                  <div id="collapse{{ order.id }}" class="accordion-collapse collapse show">
-                    <div class="accordion-body">
-                      <p><strong>ID:</strong> {{ order.id }}</p>
-                      <p><strong>NR:</strong> {{ order.nr }}</p>
-                      <p><strong>Cliente:</strong> {{ order.cliente }}</p>
-                      <p><strong>Prioridade:</strong> {{ order.prioridade }}</p>
-                      <p><strong>Data e Hora (pC):</strong> {{ order.dataH | date: 'dd/MM/yyyy HH:mm' }}</p>
-                      <p><strong>Data e Hora (pE):</strong> {{ order.dataEntrega | date: 'dd/MM/yyyy HH:mm' }}</p>
-                      <p><strong>Entregador:</strong> {{ order.entregador }}</p>
-                      <p><strong>Observações:</strong> {{ order.observacao }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      </ng-container>
-    </tbody>
-  </table>
+      </tbody>
+    </table>
 
-  <div class="d-flex justify-content-center mt-4">
-    <nav>
-      <ul class="pagination">
-        <li class="page-item" [ngClass]="{'disabled': currentPage === 1}">
-          <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
-        </li>
-        <li class="page-item" *ngFor="let page of pageNumbers" [ngClass]="{'active': currentPage === page}">
-          <a class="page-link" (click)="changePage(page)">{{ page }}</a>
-        </li>
-        <li class="page-item" [ngClass]="{'disabled': currentPage === totalPages}">
-          <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
-        </li>
-      </ul>
-    </nav>
+    <!-- Modal de Detalhes do Pedido -->
+<div class="modal-backdrop" *ngIf="selectedOrder" (click)="closeOrderDetails()"></div>
+  <div class="modal show" *ngIf="selectedOrder" style="display: block;" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalhes do Pedido</h5>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="editOrderForm" (ngSubmit)="updateOrder()">
+            <div class="mb-3">
+              <label for="nr" class="form-label">NR</label>
+              <input formControlName="nr" type="text" class="form-control" id="nr" />
+            </div>
+            <div class="mb-3">
+              <label for="cliente" class="form-label">Cliente</label>
+              <input formControlName="cliente" type="text" class="form-control" id="cliente" />
+            </div>
+            <div class="mb-3">
+              <label for="prioridade" class="form-label">Prioridade</label>
+              <input formControlName="prioridade" type="text" class="form-control" id="prioridade" />
+            </div>
+            <div class="mb-3">
+              <label for="status" class="form-label">Status</label>
+              <input formControlName="status" type="number" class="form-control" id="status" />
+            </div>
+            <div class="mb-3">
+              <label for="entregador" class="form-label">Entregador</label>
+              <input formControlName="entregador" type="text" class="form-control" id="entregador" />
+            </div>
+            <div class="mb-3">
+              <label for="observacao" class="form-label">Observações</label>
+              <textarea formControlName="observacao" class="form-control" id="observacao"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary me-2">Salvar</button>
+            <button type="button" class="btn btn-secondary ml-10" (click)="closeOrderDetails()">Cancelar</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
-</div> -->
+</div>

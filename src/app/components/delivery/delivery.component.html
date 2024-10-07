@@ -59,6 +59,29 @@
       </div>
       <div class="modal-body">
         <form [formGroup]="deliveryForm">
+          <h5>Pedidos Selecionados:</h5>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">NR</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Prioridade</th>
+        <th scope="col">Data/Hora</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of selectedOrders">
+        <td>{{ order.id }}</td>
+        <td>{{ order.nr }}</td>
+        <td>{{ order.cliente }}</td>
+           <td [style.color]="getPriorityColor(order.prioridade)">
+          {{ order.prioridade }}
+        </td>
+        <td>{{ order.dataH | date: 'dd/MM HH:mm' }}</td>
+      </tr>
+    </tbody>
+  </table>
           <div class="mb-3">
             <label for="deliveryPerson" class="form-label">Entregador</label>
             <input

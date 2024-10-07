@@ -1,1 +1,47 @@
-<p>delivery-return works!</p>
+<div class="container">
+  <form [formGroup]="returnForm" (ngSubmit)="loadOrders()">
+    <div class="mb-3">
+      <label for="entregador" class="form-label">Nome do Entregador</label>
+      <input formControlName="entregador" type="text" class="form-control" id="entregador" />
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar Pedidos</button>
+  </form>
+
+  <div *ngIf="orders.length > 0">
+    <h3>Pedidos para Retorno</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">Selecionar</th>
+          <th scope="col">Id</th>
+          <th scope="col">NR</th>
+          <th scope="col">Cliente</th>
+          <th scope="col">Prioridade</th>
+          <th scope="col">DataHora</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of orders">
+          <td>
+            <input
+              type="checkbox"
+              (change)="onOrderSelectionChange(order, $event)"
+            />
+          </td>
+          <td>{{ order.id }}</td>
+          <td>{{ order.nr }}</td>
+          <td>{{ order.cliente }}</td>
+          <td [style.color]="getPriorityColor(order.prioridade)">
+            {{ order.prioridade }}
+          </td>
+          <td>{{ order.dataH | date: 'dd/MM HH:mm' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button (click)="confirmReturn()" class="btn btn-success">
+      Confirmar Retorno
+    </button>
+  </div>
+</div>
+

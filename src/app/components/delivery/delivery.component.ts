@@ -1,11 +1,10 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { OrderService } from '../../services/orders.service';
 import { orders } from '../../models/orders';
 import { WebsocketService } from '../../services/websocket.service';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-delivery',
@@ -14,7 +13,7 @@ import { ReactiveFormsModule } from '@angular/forms';
   templateUrl: './delivery.component.html',
   styleUrls: ['./delivery.component.css'],
 })
-export class DeliveryComponent implements OnInit {
+export class DeliveryComponent implements OnInit, AfterViewInit {
   orders: orders[] = [];
   selectedOrders: orders[] = [];
   deliveryForm: FormGroup;
@@ -43,42 +42,54 @@ export class DeliveryComponent implements OnInit {
   }
 
   ngAfterViewInit(): void {
-    // Inicializar os modais após os elementos do DOM estarem prontos
     this.initializeModals();
   }
 
   initializeModals() {
-    if (this.deliveryModal) {
-      this.deliveryModalInstance = new (window as any).bootstrap.Modal(this.deliveryModal.nativeElement);
-      console.log('Delivery Modal initialized:', this.deliveryModalInstance);
-    }
-
-    if (this.thankYouModal) {
-      this.thankYouModalInstance = new (window as any).bootstrap.Modal(this.thankYouModal.nativeElement);
-      console.log('Thank You Modal initialized:', this.thankYouModalInstance);
-    }
+    this.deliveryModalInstance = new (window as any).bootstrap.Modal(this.deliveryModal.nativeElement);
+    this.thankYouModalInstance = new (window as any).bootstrap.Modal(this.thankYouModal.nativeElement);
   }
 
   loadOrders(): void {
     this.orderService.getOrders().subscribe((orders) => {
-      this.orders = orders
-        .filter((order) => order.status === 0 || order.status === 1 || order.status === 2)
-        .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+      this.orders = orders.filter(order => [0, 1, 2].includes(order.status))
+                          .sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
     });
   }
 
   listenForNewOrders(): void {
-    this.websocketService.watchOrders().subscribe((order) => {
-      this.orders.push(order);
-      this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    this.websocketService.watchOrders().subscribe((message: any) => {
+      const order = JSON.parse(message.body);
+      this.updateOrdersList(order);
     });
   }
+
+  updateOrdersList(order: orders) {
+    const index = this.orders.findIndex(o => o.id === order.id);
+    if (index !== -1) {
+      this.orders[index] = order;
+    } else {
+      this.orders.push(order);
+    }
+    this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
+    this.selectedOrders = [];
+  this.closeModalsIfNeeded();
+  }
+
+  closeModalsIfNeeded() {
+  if (this.deliveryModalInstance && this.deliveryModalInstance._isShown) {
+    this.deliveryModalInstance.hide();
+  }
+  if (this.thankYouModalInstance && this.thankYouModalInstance._isShown) {
+    this.thankYouModalInstance.hide();
+  }
+}
 
   onOrderSelectionChange(order: orders, event: any): void {
     if (event.target.checked) {
       this.selectedOrders.push(order);
     } else {
-      this.selectedOrders = this.selectedOrders.filter((o) => o !== order);
+      this.selectedOrders = this.selectedOrders.filter(o => o !== order);
     }
   }
 
@@ -87,14 +98,13 @@ export class DeliveryComponent implements OnInit {
       alert('Nenhum pedido selecionado');
     } else {
       this.deliveryForm.reset();
-      console.log('Opening Delivery Modal');
-      this.deliveryModalInstance.show(); // Mostrar modal de entrega
+      this.deliveryModalInstance.show();
     }
   }
 
   confirmDelivery(): void {
     if (this.deliveryForm.invalid) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      alert('Preencha todos os campos obrigatórios.');
       return;
     }
 
@@ -107,9 +117,9 @@ export class DeliveryComponent implements OnInit {
         this.loadOrders();
       });
     });
-
-    this.deliveryModalInstance.hide(); // Fechar modal de entrega
-    this.thankYouModalInstance.show(); // Mostrar modal de agradecimento
+    this.selectedOrders = [];
+    this.deliveryModalInstance.hide();
+    this.thankYouModalInstance.show();
   }
 
   closeThankYouModal(): void {
@@ -122,18 +132,13 @@ export class DeliveryComponent implements OnInit {
   }
 
   getPriorityColor(prioridade: string): string {
-    switch (prioridade) {
-      case 'Vermelho':
-        return 'red';
-      case 'Amarelo':
-        return 'orange';
-      case 'Azul':
-        return 'blue';
-      case 'Verde':
-        return 'green';
-      default:
-        return 'black';
-    }
+    const colors: { [key: string]: string } = {
+      'Vermelho': 'red',
+      'Amarelo': 'orange',
+      'Azul': 'blue',
+      'Verde': 'green'
+    };
+    return colors[prioridade] || 'black';
   }
 }
 
