@@ -68,7 +68,12 @@
           </div>
           <div class="mb-3">
             <label for="prioridade" class="form-label">Prioridade</label>
-            <input type="text" id="prioridade" formControlName="prioridade" class="form-control">
+            <select formControlName="prioridade" class="form-control" id="prioridade">
+              <option value="Vermelho">Vermelho</option>
+              <option value="Amarelo">Amarelo</option>
+              <option value="Azul">Azul</option>
+              <option value="Verde">Verde</option>
+            </select>
           </div>
           <div class="mb-3">
             <label for="dataH" class="form-label">Data e Hora</label>

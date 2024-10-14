@@ -34,7 +34,6 @@ export class DeliveryReturnComponent implements OnInit {
   const entregadorName = this.returnForm.get('entregador')?.value?.toLowerCase(); // Converter o nome do entregador para lowercase
 
   if (!entregadorName) {
-    // Não realizar a busca se o nome do entregador não for preenchido
     return;
   }
 
@@ -71,7 +70,7 @@ export class DeliveryReturnComponent implements OnInit {
       // Se quiser concatenar uma nova observação, você pode fazer isso aqui:
       // notes += ' - Pedido retornado pelo entregador: ' + entregador;
 
-      const deliveryType = 4; // Status de retorno
+      const deliveryType = 5; // Status de retorno
 
       // Atualizar o status para 4 (Retorno)
       this.orderService.updateOrderStatus(order.id, deliveryType, entregador, notes).subscribe(() => {

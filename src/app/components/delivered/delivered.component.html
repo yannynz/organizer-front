@@ -15,7 +15,7 @@
           <th scope="col">NR</th>
           <th scope="col">Cliente</th>
           <th scope="col">Prioridade</th>
-          <th scope="col">DataHora</th>
+          <th scope="col">Data De entrada</th>
           <th scope="col">Status</th>
           <th scope="col">Entregador</th>
           <th scope="col">Ações</th>
@@ -30,7 +30,7 @@
             {{ order.prioridade }}
           </td>
           <td>{{ order.dataH | date: 'dd/MM HH:mm' }}</td>
-          <td>{{ order.status }}</td>
+          <td>{{ getStatusDescription(order.status) }}</td>
           <td>{{ order.entregador }}</td>
           <td>
             <button class="btn btn-info" (click)="openOrderDetails(order)">
@@ -41,45 +41,52 @@
       </tbody>
     </table>
 
-    <!-- Modal de Detalhes do Pedido -->
-<div class="modal-backdrop" *ngIf="selectedOrder" (click)="closeOrderDetails()"></div>
-  <div class="modal show" *ngIf="selectedOrder" style="display: block;" aria-modal="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Detalhes do Pedido</h5>
-        </div>
-        <div class="modal-body">
-          <form [formGroup]="editOrderForm" (ngSubmit)="updateOrder()">
-            <div class="mb-3">
-              <label for="nr" class="form-label">NR</label>
-              <input formControlName="nr" type="text" class="form-control" id="nr" />
-            </div>
-            <div class="mb-3">
-              <label for="cliente" class="form-label">Cliente</label>
-              <input formControlName="cliente" type="text" class="form-control" id="cliente" />
-            </div>
-            <div class="mb-3">
-              <label for="prioridade" class="form-label">Prioridade</label>
-              <input formControlName="prioridade" type="text" class="form-control" id="prioridade" />
-            </div>
-            <div class="mb-3">
-              <label for="status" class="form-label">Status</label>
-              <input formControlName="status" type="number" class="form-control" id="status" />
-            </div>
-            <div class="mb-3">
-              <label for="entregador" class="form-label">Entregador</label>
-              <input formControlName="entregador" type="text" class="form-control" id="entregador" />
-            </div>
-            <div class="mb-3">
-              <label for="observacao" class="form-label">Observações</label>
-              <textarea formControlName="observacao" class="form-control" id="observacao"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary me-2">Salvar</button>
-            <button type="button" class="btn btn-secondary ml-10" (click)="closeOrderDetails()">Cancelar</button>
-          </form>
-        </div>
+<!-- Modal de Detalhes do Pedido -->
+<div class="modal-backdrop show" *ngIf="selectedOrder" (click)="closeOrderDetails()"></div>
+<div class="modal fade show" *ngIf="selectedOrder" tabindex="-1" aria-modal="true" style="display: block;" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes do Pedido</h5>
+        <button type="button" class="btn-close" aria-label="Close" (click)="closeOrderDetails()"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="editOrderForm" (ngSubmit)="updateOrder()">
+          <div class="mb-3">
+            <label for="nr" class="form-label">NR</label>
+            <input formControlName="nr" type="text" class="form-control" id="nr" />
+          </div>
+          <div class="mb-3">
+            <label for="cliente" class="form-label">Cliente</label>
+            <input formControlName="cliente" type="text" class="form-control" id="cliente" />
+          </div>
+          <div class="mb-3">
+            <label for="prioridade" class="form-label">Prioridade</label>
+            <select formControlName="prioridade" class="form-control" id="prioridade">
+              <option value="Vermelho">Vermelho</option>
+              <option value="Amarelo">Amarelo</option>
+              <option value="Azul">Azul</option>
+              <option value="Verde">Verde</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <input formControlName="status" type="number" class="form-control" id="status" />
+          </div>
+<div *ngIf="selectedOrder?.entregador">
+  <label for="entregador" class="form-label">Entregador</label>
+  <input formControlName="entregador" type="text" class="form-control" id="entregador" readonly />
+</div>
+
+<div *ngIf="selectedOrder?.observacao">
+  <label for="observacao" class="form-label">Observações</label>
+  <textarea formControlName="observacao" class="form-control" id="observacao" readonly></textarea>
+</div>         <button type="submit" class="btn btn-primary me-2">Salvar</button>
+          <button type="button" class="btn btn-secondary" (click)="closeOrderDetails()">Cancelar</button>
+        </form>
       </div>
     </div>
   </div>
 </div>
+
+

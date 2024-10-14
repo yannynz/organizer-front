@@ -3,7 +3,7 @@
     background-color: #f8f9fa;
     padding: 10px;
   }
-  
+
   .accordion-body {
     padding: 10px;
     background-color: #e9ecef;
@@ -15,21 +15,39 @@
     margin-left: 10px;
     transition: transform 0.3s ease;
   }
-  
+
   .accordion-icon.open {
     transform: rotate(90deg);
   }
-  
+
   .accordion-collapse {
     overflow: hidden;
     transition: max-height 0.3s ease;
   }
-  
+
   .accordion-collapse.collapse.show {
     max-height: 500px;
   }
-  
+
   .accordion-collapse.collapse {
     max-height: 0;
   }
-  
+
+.modal.show {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.5); /* Overlay escuro */
+}
+
+.modal-dialog-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Centralização vertical */
+}
+
+.modal-content {
+  border-radius: 8px;
+  max-width: 600px;
+  margin: auto;
+}
+

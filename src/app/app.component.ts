@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { OrdersComponent } from "./components/orders/orders.component";
-import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
@@ -12,4 +11,6 @@ import { HttpClient } from '@angular/common/http';
 })
 export class AppComponent {
   title = 'organizer-front';
+
+  showFooter: boolean = true;
 }

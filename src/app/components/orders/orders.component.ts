@@ -66,7 +66,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
  loadOrders() {
   // Carrega todos os pedidos existentes
   this.orderService.getOrders().subscribe((orders: orders[]) => {
-    this.orders = orders.filter(order => order.status !== 3 && order.status !== 4);
+    this.orders = orders.filter(order => order.status === 0 || order.status === 1 || order.status === 2);
     this.orders.sort((a, b) => this.comparePriorities(a.prioridade, b.prioridade));
   });
 }

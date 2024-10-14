@@ -8,5 +8,5 @@ export const routes: Routes = [
     { path: 'entrega', component:DeliveryComponent},
     { path: 'entregues', component:DeliveredComponent},
     { path: 'entregaVolta', component:DeliveryReturnComponent},
-    { path: '', redirectTo: '/pedidos', pathMatch: 'full' }
-];
+    { path: '', redirectTo: '/pedidos', pathMatch: 'full' },
+  ];
